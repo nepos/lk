@@ -51,22 +51,6 @@ void gpio_set_dir(uint32_t gpio, uint32_t dir)
 	return;
 }
 
-void gpio_set_value(uint32_t gpio, uint32_t value)
-{
-	/* GPIO_OUTPUT */
-	if (value) {
-		writel(GPIO_OUT_VAL(gpio),
-			(uint32_t *)GPIO_OUT_SET_ADDR(gpio));
-	} else {
-		writel(GPIO_OUT_VAL(gpio),
-			(uint32_t *)GPIO_OUT_CLR_ADDR(gpio));
-	}
-	/* GPIO_OE */
-	writel(GPIO_OUT_OE_VAL(gpio),
-			(uint32_t *)GPIO_OUT_OE_SET_ADDR(gpio));
-	return;
-}
-
 uint32_t gpio_status(uint32_t gpio)
 {
 	return readl(GPIO_IN_OUT_ADDR(gpio)) & GPIO_IN;
@@ -95,6 +79,15 @@ void gpio_config_blsp_i2c(uint8_t blsp_id, uint8_t qup_id)
 
 				/* configure I2C SCL gpio */
 				gpio_tlmm_config(7, 3, GPIO_OUTPUT, GPIO_NO_PULL,
+					GPIO_8MA, GPIO_DISABLE);
+			break;
+			case QUP_ID_3:
+				/* configure I2C SDA gpio */
+				gpio_tlmm_config(14, 2, GPIO_OUTPUT, GPIO_NO_PULL,
+						GPIO_8MA, GPIO_DISABLE);
+
+				/* configure I2C SCL gpio */
+				gpio_tlmm_config(15, 2, GPIO_OUTPUT, GPIO_NO_PULL,
 					GPIO_8MA, GPIO_DISABLE);
 			break;
 			default:

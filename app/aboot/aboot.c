@@ -55,6 +55,8 @@
 #include <platform/iomap.h>
 #include <boot_device.h>
 #include <boot_verifier.h>
+#include <i2c_qup.h>
+#include <blsp_qup.h>
 
 #if DEVICE_TREE
 #include <libfdt.h>
@@ -613,28 +615,35 @@ static unsigned hex2unsigned(const char *x)
     return n;
 }
 
+#define MAC_I2C_ADDRESS 0x57
+#define MAC_I2C_OFFSET	0xFA
 /* generate a unique locally administrated MAC */
 unsigned char* generate_mac_address()
 {
-	int len, i;
-	char sn[] = "00000000";
-	unsigned char * mac;
-
-	/* make sure we have exactly 8 char for serialno */
-	len = MIN(strlen(sn_buf), 8);
-	memcpy(&sn[8-len], sn_buf, len);
-
+	struct qup_i2c_dev *eeprom_i2c_dev;
+	int ret;
+	unsigned char *mac;
+	
 	mac = (unsigned char*) malloc(6*sizeof(unsigned char));
 	ASSERT(mac != NULL);
 
-	/* fill in the mac with serialno, use locally adminstrated pool */
-	mac[0] = 0x02;
-	mac[1] = 00;
-	for (i = 3 ; i >= 0; i--)
-	{
-		mac[i+2] = hex2unsigned(&sn[2*i]);
-		sn[2*i]=0;
+	mac[0]=MAC_I2C_OFFSET;
+	struct i2c_msg msg_buf[] = {
+	       {MAC_I2C_ADDRESS, I2C_M_WR, 1, &mac[0]},
+	       {MAC_I2C_ADDRESS, I2C_M_RD, 6, mac}
+	};
+
+	eeprom_i2c_dev = qup_blsp_i2c_init(BLSP_ID_1, QUP_ID_3, 100000, 19200000);
+	if(!eeprom_i2c_dev) {
+		dprintf(CRITICAL, "qup_blsp_i2c_init failed \n");
+		ASSERT(0);
 	}
+	ret = qup_i2c_xfer(eeprom_i2c_dev, &msg_buf, 2);
+	if(ret < 0) {
+		dprintf(CRITICAL, "qup_i2c_xfer error %d\n", ret);
+		return ret;
+	}
+	qup_i2c_deinit(eeprom_i2c_dev);
 
 	return mac;
 }
