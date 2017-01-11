@@ -232,12 +232,14 @@ static uint32_t mmc_decode_and_save_csd(struct mmc_card *card)
 	memcpy((struct mmc_csd *)&card->csd,(struct mmc_csd *)&mmc_csd,
 			sizeof(struct mmc_csd));
 
-	/* Calculate the wp grp size */
-	if (card->ext_csd[MMC_ERASE_GRP_DEF])
-		card->wp_grp_size = MMC_HC_ERASE_MULT * card->ext_csd[MMC_HC_ERASE_GRP_SIZE] / MMC_BLK_SZ;
-	else
-		card->wp_grp_size = (card->csd.wp_grp_size + 1) * (card->csd.erase_grp_size + 1) \
-					  * (card->csd.erase_grp_mult + 1);
+	if (target_boot_internal()) {
+		/* Calculate the wp grp size */
+		if (card->ext_csd[MMC_ERASE_GRP_DEF])
+			card->wp_grp_size = MMC_HC_ERASE_MULT * card->ext_csd[MMC_HC_ERASE_GRP_SIZE] / MMC_BLK_SZ;
+		else
+			card->wp_grp_size = (card->csd.wp_grp_size + 1) * (card->csd.erase_grp_size + 1) \
+						  * (card->csd.erase_grp_mult + 1);
+	}
 
 	dprintf(SPEW, "Decoded CSD fields:\n");
 	dprintf(SPEW, "cmmc_structure: %u\n", mmc_csd.cmmc_structure);
@@ -1662,18 +1664,19 @@ static uint32_t mmc_card_init(struct mmc_device *dev)
 		}
 	}
 
-
 	card->block_size = MMC_BLK_SZ;
 
-	/* Enable RST_n_FUNCTION */
-	if (!card->ext_csd[MMC_EXT_CSD_RST_N_FUNC])
-	{
-		mmc_return = mmc_switch_cmd(host, card, MMC_SET_BIT, MMC_EXT_CSD_RST_N_FUNC, RST_N_FUNC_ENABLE);
-
-		if (mmc_return)
+	if (target_boot_internal()) {
+		/* Enable RST_n_FUNCTION */
+		if (!card->ext_csd[MMC_EXT_CSD_RST_N_FUNC])
 		{
-			dprintf(CRITICAL, "Failed to enable RST_n_FUNCTION\n");
-			return mmc_return;
+			mmc_return = mmc_switch_cmd(host, card, MMC_SET_BIT, MMC_EXT_CSD_RST_N_FUNC, RST_N_FUNC_ENABLE);
+
+			if (mmc_return)
+			{
+				dprintf(CRITICAL, "Failed to enable RST_n_FUNCTION\n");
+				return mmc_return;
+			}
 		}
 	}
 
