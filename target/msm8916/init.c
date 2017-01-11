@@ -77,7 +77,7 @@
 #define CE_WRITE_PIPE_LOCK_GRP  0
 #define CE_ARRAY_SIZE           20
 
-static void set_sdc_power_ctrl(void);
+static void set_sdc_power_ctrl(int slot);
 
 struct mmc_device *dev;
 
@@ -97,35 +97,45 @@ void target_early_init(void)
 #endif
 }
 
+#define BOOT_CONFIG_GPIO_1 81
+static int boot_from_emmc = -1;
+
+int target_boot_internal(void)
+{
+	if (boot_from_emmc < 0)
+		boot_from_emmc = !gpio_status(BOOT_CONFIG_GPIO_1);
+
+	return boot_from_emmc;
+}
+
 void target_sdc_init()
 {
-	struct mmc_config_data config;
+	struct mmc_config_data config = {};
 
-	/* Set drive strength & pull ctrl values */
-	set_sdc_power_ctrl();
+	dprintf(INFO, "Booting from %s as requested by boot config\n",
+		target_boot_internal() ? "internal eMMC" : "external SD");
 
-	config.bus_width = DATA_BUS_WIDTH_8BIT;
-	config.max_clk_rate = MMC_CLK_177MHZ;
+	if (target_boot_internal()) {
+		config.slot = 1;
+		config.bus_width = DATA_BUS_WIDTH_8BIT;
+		config.max_clk_rate = MMC_CLK_177MHZ;
+		config.hs400_support = 1;
+	} else {
+		config.slot = 2;
+		config.bus_width = DATA_BUS_WIDTH_4BIT;
+		config.max_clk_rate = MMC_CLK_200MHZ;
+	}
 
-	/* Try slot 1*/
-	config.slot         = 1;
 	config.sdhc_base    = mmc_sdhci_base[config.slot - 1];
 	config.pwrctl_base  = mmc_pwrctl_base[config.slot - 1];
 	config.pwr_irq      = mmc_sdc_pwrctl_irq[config.slot - 1];
-	config.hs400_support = 0;
+
+	/* Set drive strength & pull ctrl values */
+	set_sdc_power_ctrl(config.slot);
 
 	if (!(dev = mmc_init(&config))) {
-	/* Try slot 2 */
-		config.slot         = 2;
-		config.max_clk_rate = MMC_CLK_200MHZ;
-		config.sdhc_base    = mmc_sdhci_base[config.slot - 1];
-		config.pwrctl_base  = mmc_pwrctl_base[config.slot - 1];
-		config.pwr_irq      = mmc_sdc_pwrctl_irq[config.slot - 1];
-
-		if (!(dev = mmc_init(&config))) {
-			dprintf(CRITICAL, "mmc init failed!");
-			ASSERT(0);
-		}
+		dprintf(CRITICAL, "mmc init failed!");
+		ASSERT(0);
 	}
 }
 
@@ -361,27 +371,29 @@ int emmc_recovery_init(void)
 	return _emmc_recovery_init();
 }
 
-static void set_sdc_power_ctrl()
+static void set_sdc_power_ctrl(int slot)
 {
+  uint32_t reg = (slot == 1) ? SDC1_HDRV_PULL_CTL : SDC2_HDRV_PULL_CTL;
+
 	/* Drive strength configs for sdc pins */
-	struct tlmm_cfgs sdc1_hdrv_cfg[] =
+	struct tlmm_cfgs sdc_hdrv_cfg[] =
 	{
-		{ SDC1_CLK_HDRV_CTL_OFF,  TLMM_CUR_VAL_16MA, TLMM_HDRV_MASK },
-		{ SDC1_CMD_HDRV_CTL_OFF,  TLMM_CUR_VAL_10MA, TLMM_HDRV_MASK },
-		{ SDC1_DATA_HDRV_CTL_OFF, TLMM_CUR_VAL_10MA, TLMM_HDRV_MASK },
+		{ .off = SDC1_CLK_HDRV_CTL_OFF,  .val = TLMM_CUR_VAL_16MA, .mask = TLMM_HDRV_MASK, .reg = reg },
+		{ .off = SDC1_CMD_HDRV_CTL_OFF,  .val = TLMM_CUR_VAL_10MA, .mask = TLMM_HDRV_MASK, .reg = reg },
+		{ .off = SDC1_DATA_HDRV_CTL_OFF, .val = TLMM_CUR_VAL_10MA, .mask = TLMM_HDRV_MASK, .reg = reg },
 	};
 
 	/* Pull configs for sdc pins */
-	struct tlmm_cfgs sdc1_pull_cfg[] =
+	struct tlmm_cfgs sdc_pull_cfg[] =
 	{
-		{ SDC1_CLK_PULL_CTL_OFF,  TLMM_NO_PULL, TLMM_PULL_MASK },
-		{ SDC1_CMD_PULL_CTL_OFF,  TLMM_PULL_UP, TLMM_PULL_MASK },
-		{ SDC1_DATA_PULL_CTL_OFF, TLMM_PULL_UP, TLMM_PULL_MASK },
+		{ .off = SDC1_CLK_PULL_CTL_OFF,  .val = TLMM_NO_PULL, .mask = TLMM_PULL_MASK, .reg = reg },
+		{ .off = SDC1_CMD_PULL_CTL_OFF,  .val = TLMM_PULL_UP, .mask = TLMM_PULL_MASK, .reg = reg },
+		{ .off = SDC1_DATA_PULL_CTL_OFF, .val = TLMM_PULL_UP, .mask = TLMM_PULL_MASK, .reg = reg },
 	};
 
 	/* Set the drive strength & pull control values */
-	tlmm_set_hdrive_ctrl(sdc1_hdrv_cfg, ARRAY_SIZE(sdc1_hdrv_cfg));
-	tlmm_set_pull_ctrl(sdc1_pull_cfg, ARRAY_SIZE(sdc1_pull_cfg));
+	tlmm_set_hdrive_ctrl(sdc_hdrv_cfg, ARRAY_SIZE(sdc_hdrv_cfg));
+	tlmm_set_pull_ctrl(sdc_pull_cfg, ARRAY_SIZE(sdc_pull_cfg));
 }
 
 void target_usb_init(void)

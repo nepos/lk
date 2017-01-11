@@ -50,6 +50,8 @@ unsigned target_get_max_flash_size(void);
 /* if target is using eMMC bootup */
 int target_is_emmc_boot(void);
 
+int target_boot_internal(void);
+
 unsigned* target_atag_mem(unsigned* ptr);
 void target_battery_charging_enable(unsigned enable, unsigned disconnect);
 unsigned target_pause_for_battery_charge(void);
