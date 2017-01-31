@@ -152,6 +152,9 @@ static const char *baseband_dsda2   = " androidboot.baseband=dsda2";
 static const char *baseband_sglte2  = " androidboot.baseband=sglte2";
 static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
 
+static const char *rootfs_internal  = " root=/dev/mmcblk0p10";
+static const char *rootfs_external  = " root=/dev/mmcblk1p10";
+
 static unsigned page_size = 0;
 static unsigned page_mask = 0;
 static char ffbm_mode_string[FFBM_MODE_BUF_SIZE];
@@ -278,6 +281,11 @@ unsigned char *update_cmdline(const char * cmdline)
 		pause_at_bootup = 1;
 		cmdline_len += strlen(battchg_pause);
 	}
+
+	if (target_boot_internal())
+		cmdline_len += strlen(rootfs_internal);
+	else
+		cmdline_len += strlen(rootfs_external);
 
 	if(target_use_signed_kernel() && auth_kernel_img) {
 		cmdline_len += strlen(auth_kernel);
@@ -494,6 +502,10 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = target_boot_params;
 			while ((*dst++ = *src++));
 		}
+
+		if (have_cmdline) --dst;
+		src = target_boot_internal() ? rootfs_internal : rootfs_external;
+		while ((*dst++ = *src++));
 	}
 
 
@@ -623,7 +635,7 @@ unsigned char* generate_mac_address()
 	struct qup_i2c_dev *eeprom_i2c_dev;
 	int ret;
 	unsigned char *mac;
-	
+
 	mac = (unsigned char*) malloc(6*sizeof(unsigned char));
 	ASSERT(mac != NULL);
 
