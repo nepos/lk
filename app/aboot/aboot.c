@@ -152,8 +152,8 @@ static const char *baseband_dsda2   = " androidboot.baseband=dsda2";
 static const char *baseband_sglte2  = " androidboot.baseband=sglte2";
 static const char *warmboot_cmdline = " qpnp-power-on.warm_boot=1";
 
-static const char *rootfs_internal  = " root=/dev/mmcblk0p10";
-static const char *rootfs_external  = " root=/dev/mmcblk1p10";
+static const char *rootfs_internal  = " root=/dev/mmcblk0";
+static const char *rootfs_external  = " root=/dev/mmcblk1";
 
 static unsigned page_size = 0;
 static unsigned page_mask = 0;
@@ -238,6 +238,9 @@ static void ptentry_to_tag(unsigned **ptr, struct ptentry *ptn)
 	*ptr += sizeof(struct atag_ptbl_entry) / sizeof(unsigned);
 }
 
+static const char *bootpartition_name = "";
+static const char *rootfspartition_name = "";
+
 unsigned char *update_cmdline(const char * cmdline)
 {
 	int cmdline_len = 0;
@@ -283,9 +286,9 @@ unsigned char *update_cmdline(const char * cmdline)
 	}
 
 	if (target_boot_internal())
-		cmdline_len += strlen(rootfs_internal);
+		cmdline_len += strlen(rootfs_internal) + strlen(rootfspartition_name);
 	else
-		cmdline_len += strlen(rootfs_external);
+		cmdline_len += strlen(rootfs_external) + strlen(rootfspartition_name);
 
 	if(target_use_signed_kernel() && auth_kernel_img) {
 		cmdline_len += strlen(auth_kernel);
@@ -381,6 +384,14 @@ unsigned char *update_cmdline(const char * cmdline)
 			while ((*dst++ = *src++));
 #endif
 		}
+
+    if (have_cmdline) --dst;
+		src = target_boot_internal() ? rootfs_internal : rootfs_external;
+		while ((*dst++ = *src++));
+
+    if (have_cmdline) --dst;
+    src = rootfspartition_name;
+		while ((*dst++ = *src++));
 
 		src = usb_sn_cmdline;
 		if (have_cmdline) --dst;
@@ -502,10 +513,6 @@ unsigned char *update_cmdline(const char * cmdline)
 			src = target_boot_params;
 			while ((*dst++ = *src++));
 		}
-
-		if (have_cmdline) --dst;
-		src = target_boot_internal() ? rootfs_internal : rootfs_external;
-		while ((*dst++ = *src++));
 	}
 
 
@@ -928,6 +935,8 @@ int boot_linux_from_mmc(void)
 	unsigned imagesize_actual;
 	unsigned second_actual = 0;
 
+  int bootcfg = 0;
+
 #if DEVICE_TREE
 	struct dt_table *table;
 	struct dt_entry dt_entry;
@@ -940,6 +949,49 @@ int boot_linux_from_mmc(void)
 
 	if (check_format_bit())
 		boot_into_recovery = 1;
+
+	index = partition_get_index("bootcfg");
+	ptn = partition_get_offset(index);
+	if (ptn > 0) {
+		if (mmc_read(ptn, (unsigned int *) buf, page_size) == 0) {
+			dprintf(INFO, "Boot config yields 0x%02x\n", buf[0]);
+
+			switch (buf[0]) {
+				case 'a':
+					bootcfg = 0;
+					buf[0] = 'B';
+					if (mmc_write(ptn, sizeof(buf[0]), (unsigned int *) buf))
+						dprintf(CRITICAL, "FAILED to write to bootcfg partition!\n");
+
+					break;
+
+				case 'b':
+					bootcfg = 1;
+					buf[0] = 'A';
+					if (mmc_write(ptn, sizeof(buf[0]), (unsigned int *) buf))
+						dprintf(CRITICAL, "FAILED to write to bootcfg partition!\n");
+
+					break;
+
+				case 'A':
+				default:
+					bootcfg = 0;
+					break;
+
+				case 'B':
+					bootcfg = 1;
+					break;
+			}
+		}
+	}
+
+	if (bootcfg == 0) {
+		bootpartition_name = "boot";
+		rootfspartition_name = "p12";
+	} else {
+		bootpartition_name = "bootalt";
+		rootfspartition_name = "p13";
+	}
 
 	if (!boot_into_recovery) {
 		memset(ffbm_mode_string, '\0', sizeof(ffbm_mode_string));
@@ -959,7 +1011,7 @@ int boot_linux_from_mmc(void)
 		goto unified_boot;
 	}
 	if (!boot_into_recovery) {
-		index = partition_get_index("boot");
+		index = partition_get_index(bootpartition_name);
 		ptn = partition_get_offset(index);
 		if(ptn == 0) {
 			dprintf(CRITICAL, "ERROR: No boot partition found\n");
