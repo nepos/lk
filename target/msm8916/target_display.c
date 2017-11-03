@@ -347,6 +347,55 @@ static int target_panel_reset_skuh(uint8_t enable)
 	return 0;
 }
 
+static void target_panel_reset_nepos1(uint8_t enable)
+{
+	if (enable) {
+		gpio_tlmm_config(nepos_enable_gpio.pin_id, 0,
+			nepos_enable_gpio.pin_direction,
+			nepos_enable_gpio.pin_pull,
+			nepos_enable_gpio.pin_strength,
+			!nepos_enable_gpio.pin_state);
+		gpio_set_dir(nepos_enable_gpio.pin_id, 2);
+
+		gpio_tlmm_config(nepos_1v8_gpio.pin_id, 0,
+			nepos_1v8_gpio.pin_direction,
+			nepos_1v8_gpio.pin_pull,
+			nepos_1v8_gpio.pin_strength,
+			nepos_1v8_gpio.pin_state);
+		gpio_set_dir(nepos_1v8_gpio.pin_id, 2);
+
+		gpio_tlmm_config(nepos_3v3_gpio.pin_id, 0,
+			nepos_3v3_gpio.pin_direction,
+			nepos_3v3_gpio.pin_pull,
+			nepos_3v3_gpio.pin_strength,
+			nepos_3v3_gpio.pin_state);
+		gpio_set_dir(nepos_3v3_gpio.pin_id, 2);
+
+		gpio_tlmm_config(nepos_5v_gpio.pin_id, 0,
+			nepos_5v_gpio.pin_direction,
+			nepos_5v_gpio.pin_pull,
+			nepos_5v_gpio.pin_strength,
+			nepos_5v_gpio.pin_state);
+		gpio_set_dir(nepos_5v_gpio.pin_id, 2);
+
+		mdelay(2);
+
+		gpio_tlmm_config(nepos_enable_gpio.pin_id, 0,
+			nepos_enable_gpio.pin_direction,
+			nepos_enable_gpio.pin_pull,
+			nepos_enable_gpio.pin_strength,
+			nepos_enable_gpio.pin_state);
+		gpio_set_dir(nepos_enable_gpio.pin_id, 2);
+
+		mdelay(2);
+	} else {
+		gpio_set_dir(nepos_1v8_gpio.pin_id, 0);
+		gpio_set_dir(nepos_3v3_gpio.pin_id, 0);
+		gpio_set_dir(nepos_5v_gpio.pin_id, 0);
+		gpio_set_dir(nepos_enable_gpio.pin_id, 0);
+	}
+}
+
 static int target_panel_reset_skuk(uint8_t enable)
 {
 	if (enable) {
@@ -451,6 +500,8 @@ int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 			if ((hw_id == HW_PLATFORM_QRD) &&
 				 (hw_subtype == HW_PLATFORM_SUBTYPE_SKUH))
 				target_panel_reset_skuh(enable);
+			if (hw_id == HW_PLATFORM_SBC)
+				target_panel_reset_nepos1(enable);
 		}
 
 		if (hw_id == HW_PLATFORM_MTP || hw_id == HW_PLATFORM_SURF) {
@@ -488,6 +539,8 @@ int target_panel_reset(uint8_t enable, struct panel_reset_sequence *resetseq,
 			if ((hw_id == HW_PLATFORM_QRD) &&
 				 (hw_subtype == HW_PLATFORM_SUBTYPE_SKUH))
 				target_panel_reset_skuh(enable);
+			if (hw_id == HW_PLATFORM_SBC)
+				target_panel_reset_nepos1(enable);
 		}
 	}
 

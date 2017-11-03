@@ -2999,7 +2999,8 @@ void aboot_init(const struct app_descriptor *app)
 	/* Display splash screen if enabled */
 #if DISPLAY_SPLASH_SCREEN
 	dprintf(SPEW, "Display Init: Start\n");
-	target_display_init(device.display_panel);
+	//target_display_init(device.display_panel);
+	target_display_init("admatec_1280_800_video");
 	dprintf(SPEW, "Display Init: Done\n");
 #endif
 

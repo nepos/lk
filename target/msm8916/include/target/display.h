@@ -96,6 +96,25 @@ static struct gpio_pin enable_gpio_skut1 = {
 };
 
 /*---------------------------------------------------------------------------*/
+/* NEPOS 1                                                                   */
+/*---------------------------------------------------------------------------*/
+static struct gpio_pin nepos_enable_gpio = {
+  "msmgpio", 113, 3, 1, 0, 1
+};
+
+static struct gpio_pin nepos_1v8_gpio = {
+  "msmgpio", 112, 3, 1, 0, 1
+};
+
+static struct gpio_pin nepos_3v3_gpio = {
+  "msmgpio", 112, 3, 1, 0, 1
+};
+
+static struct gpio_pin nepos_5v_gpio = {
+  "msmgpio", 3, 3, 1, 0, 1
+};
+
+/*---------------------------------------------------------------------------*/
 /* Target Physical configuration                                             */
 /*---------------------------------------------------------------------------*/
 
@@ -177,6 +196,7 @@ enum {
 	R61318_HD_VIDEO_PANEL,
 	R63417_1080P_VIDEO_PANEL,
 	JDI_A216_FHD_VIDEO_PANEL,
+	ADMATEC_1280_800_VIDEO_PANEL,
 	UNKNOWN_PANEL
 };
 
