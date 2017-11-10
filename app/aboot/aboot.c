@@ -986,10 +986,10 @@ int boot_linux_from_mmc(void)
 	}
 
 	if (bootcfg == 0) {
-		bootpartition_name = "boot";
+		bootpartition_name = "boot-a";
 		rootfspartition_name = "p12";
 	} else {
-		bootpartition_name = "bootalt";
+		bootpartition_name = "boot-b";
 		rootfspartition_name = "p13";
 	}
 
