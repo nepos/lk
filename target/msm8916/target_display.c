@@ -378,7 +378,7 @@ static void target_panel_reset_nepos1(uint8_t enable)
 			nepos_5v_gpio.pin_state);
 		gpio_set_dir(nepos_5v_gpio.pin_id, 2);
 
-		mdelay(2);
+		mdelay(100);
 
 		gpio_tlmm_config(nepos_enable_gpio.pin_id, 0,
 			nepos_enable_gpio.pin_direction,
@@ -387,7 +387,7 @@ static void target_panel_reset_nepos1(uint8_t enable)
 			nepos_enable_gpio.pin_state);
 		gpio_set_dir(nepos_enable_gpio.pin_id, 2);
 
-		mdelay(2);
+		mdelay(100);
 	} else {
 		gpio_set_dir(nepos_1v8_gpio.pin_id, 0);
 		gpio_set_dir(nepos_3v3_gpio.pin_id, 0);

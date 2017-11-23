@@ -2993,14 +2993,16 @@ void aboot_init(const struct app_descriptor *app)
 
 	ASSERT((MEMBASE + MEMSIZE) > MEMBASE);
 
-	read_device_info(&device);
+	//read_device_info(&device);
+	memset(&device, 0, sizeof(device));
+	snprintf(device.display_panel, sizeof(device.display_panel), "admatec_1280_800_video");
+
 	read_allow_oem_unlock(&device);
 
 	/* Display splash screen if enabled */
 #if DISPLAY_SPLASH_SCREEN
 	dprintf(SPEW, "Display Init: Start\n");
-	//target_display_init(device.display_panel);
-	target_display_init("admatec_1280_800_video");
+	target_display_init(device.display_panel);
 	dprintf(SPEW, "Display Init: Done\n");
 #endif
 
