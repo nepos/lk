@@ -180,6 +180,11 @@ uint32_t board_target_id()
 	return board.target;
 }
 
+void board_target_id_set(uint32_t target)
+{
+	board.target = target;
+}
+
 uint32_t board_baseband()
 {
 	return board.baseband;
@@ -193,6 +198,11 @@ uint32_t board_hardware_id()
 uint32_t board_hardware_subtype(void)
 {
 	return board.platform_subtype;
+}
+
+void board_hardware_subtype_set(uint32_t subtype)
+{
+	board.platform_subtype = subtype;
 }
 
 uint32_t board_foundry_id(void)
