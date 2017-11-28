@@ -567,7 +567,7 @@ static int platform_dt_absolute_match(struct dt_entry *cur_dt_entry, struct dt_e
 		(cur_dt_hw_subtype == board_hardware_subtype()) &&
 		(cur_dt_hlos_ddr == (target_get_hlos_subtype() & 0x700)) &&
 		(cur_dt_entry->soc_rev <= board_soc_version()) &&
-		((cur_dt_entry->variant_id & 0x00ffff00) <= (board_target_id() & 0x00ffff00)) &&
+		((cur_dt_entry->variant_id & 0x00ffff00) == (board_target_id() & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[0] & 0x00ffff00) <= (board_pmic_target(0) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[1] & 0x00ffff00) <= (board_pmic_target(1) & 0x00ffff00)) &&
 		((cur_dt_entry->pmic_rev[2] & 0x00ffff00) <= (board_pmic_target(2) & 0x00ffff00)) &&
